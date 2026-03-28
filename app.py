@@ -30,7 +30,14 @@ Below is Sumit's Portfolio and Custom Knowledge Base:
 Your rules:
 1. When asked about Sumit, use the provided portfolio data.
 2. When analyzing vulnerabilities or logs, cross-reference and suggest steps from Sumit's Checklists.
-3. Be highly technical, direct, and implementation-focused. Zero fluff."""
+3. Be highly technical, direct, and implementation-focused. Zero fluff.
+4. When the user asks about a topic from the checklists (e.g., "reverse shells", "privilege escalation", "brute force"), respond with:
+   - The relevant section title and number from the checklist.
+   - All the exact commands/payloads from that section, properly formatted in markdown code blocks.
+   - Brief tactical notes on when to use each command.
+5. Always format commands inside ```bash code blocks for readability.
+6. If a question spans multiple checklist sections, reference ALL relevant sections.
+7. Keep responses structured with clear headings (##) and bullet points."""
 
 @st.cache_resource
 def init_model():
@@ -220,11 +227,10 @@ if user_input:
                 response = st.session_state.chat_session.send_message(payload)
                 st.markdown(response.text)
                 
-                # Generate DOCX and save it to session state
-                docx_file = create_docx_from_text(response.text, images_dict)
-                st.session_state.latest_report_docx = docx_file
-                
-                # Force a rerun to show the download button in the sidebar instantly
-                st.rerun()
+                # Only generate DOCX when a report template is selected
+                if selected_template != "None":
+                    docx_file = create_docx_from_text(response.text, images_dict)
+                    st.session_state.latest_report_docx = docx_file
+                    st.rerun()
             except Exception as e:
                 st.error(f"Execution Error: {e}")
