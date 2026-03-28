@@ -137,7 +137,7 @@ st.markdown("""
     </div>
     <div class="social-links">
         <a href="https://SumitNayak1337.github.io" target="_blank">🌐 Portfolio</a>
-        <a href="https://www.linkedin.com/in/sumitnayak1337" target="_blank">💼 LinkedIn</a>
+        <a href="https://www.linkedin.com/in/sumit1337" target="_blank">💼 LinkedIn</a>
         <a href="https://github.com/SumitNayak1337/streamlit_app" target="_blank">⭐ Star on GitHub</a>
     </div>
 </div>
