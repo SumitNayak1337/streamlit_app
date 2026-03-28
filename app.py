@@ -5,7 +5,7 @@ import os
 from template import REPORT_TEMPLATES
 from document import create_docx_from_text
 
-st.set_page_config(page_title="NEXUS AI", layout="wide")
+st.set_page_config(page_title="NEXUS AI", page_icon="🛡️", layout="wide")
 
 # Initialize API
 api_key = st.secrets["GEMINI_API_KEY"]
@@ -46,7 +46,102 @@ if "latest_report_docx" not in st.session_state:
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 
-st.title("🛡️ NEXUS - Custom CyberSec Agent")
+# --- Custom CSS for styling ---
+st.markdown("""
+<style>
+    .hero-container {
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        border-radius: 16px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    .hero-title {
+        font-size: 2.4rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.3rem;
+    }
+    .hero-subtitle {
+        color: #a0aec0;
+        font-size: 1.05rem;
+        margin-bottom: 1.2rem;
+        line-height: 1.6;
+    }
+    .feature-badge {
+        display: inline-block;
+        background: rgba(123, 47, 247, 0.15);
+        border: 1px solid rgba(123, 47, 247, 0.3);
+        color: #c4b5fd;
+        padding: 0.35rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        margin: 0.2rem 0.3rem 0.2rem 0;
+        font-weight: 500;
+    }
+    .social-links {
+        margin-top: 1.2rem;
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+    .social-links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #e2e8f0;
+        padding: 0.45rem 1rem;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-weight: 500;
+    }
+    .social-links a:hover {
+        background: rgba(123, 47, 247, 0.2);
+        border-color: rgba(123, 47, 247, 0.4);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+    .sidebar-footer {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+        color: #718096;
+        font-size: 0.78rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- Hero Section ---
+st.markdown("""
+<div class="hero-container">
+    <div class="hero-title">🛡️ NEXUS — CyberSec AI Agent</div>
+    <div class="hero-subtitle">
+        Built by <b>Sumit Nayak</b> to accelerate cybersecurity workflows.<br>
+        Upload your screenshots from CTF machines, penetration tests, or SOC investigations — and let NEXUS
+        generate professional-grade security reports in seconds.
+    </div>
+    <div>
+        <span class="feature-badge">🔍 AI-Powered Analysis</span>
+        <span class="feature-badge">📄 Auto DOCX Report</span>
+        <span class="feature-badge">🧠 Custom Checklists</span>
+        <span class="feature-badge">🖼️ Screenshot Intelligence</span>
+        <span class="feature-badge">⚡ Offensive & Defensive Templates</span>
+    </div>
+    <div class="social-links">
+        <a href="https://SumitNayak1337.github.io" target="_blank">🌐 Portfolio</a>
+        <a href="https://www.linkedin.com/in/sumitnayak1337" target="_blank">💼 LinkedIn</a>
+        <a href="https://github.com/SumitNayak1337/streamlit_app" target="_blank">⭐ Star on GitHub</a>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 with st.sidebar:
     st.subheader("Report Configuration")
@@ -59,7 +154,7 @@ with st.sidebar:
     if uploaded_files:
         st.success(f"{len(uploaded_files)} files staged for analysis.")
         for file in uploaded_files:
-            st.image(file, caption=file.name, use_container_width=True)
+            st.image(file, caption=file.name, width=250)
             
     if st.button("Clear Session"):
         st.session_state.chat_session = init_model().start_chat(history=[])
@@ -76,6 +171,13 @@ with st.sidebar:
             file_name="nexus_security_report.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+        
+    st.markdown("""
+    <div class="sidebar-footer">
+        Made with ❤️ by <b>Sumit Nayak</b><br>
+        <a href="https://github.com/SumitNayak1337/streamlit_app" target="_blank" style="color: #7b2ff7;">⭐ Star this project on GitHub</a>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Display Chat History
 for message in st.session_state.chat_session.history:
