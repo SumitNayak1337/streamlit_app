@@ -7,7 +7,8 @@ Built by **Sumit Nayak**, **NEXUS** is an advanced AI-powered cybersecurity assi
 ## 📺 Project Demo
 Experience NEXUS in action! The following video demonstrates how the AI analyzes logs, screenshots, and generates professional security reports in seconds.
 
-https://github.com/SumitNayak1337/streamlit_app/raw/main/0401.mp4
+https://github.com/SumitNayak1337/streamlit_app/raw/main/app_video.mp4
+
 
 ---
 
