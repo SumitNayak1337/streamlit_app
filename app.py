@@ -1,5 +1,6 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from PIL import Image
 import os
 from template import REPORT_TEMPLATES
@@ -7,10 +8,7 @@ from document import create_docx_from_text
 
 st.set_page_config(page_title="NEXUS AI", page_icon="🛡️", layout="wide")
 
-# Initialize API
-api_key = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=api_key)
-MODEL_ID = "models/gemini-3.1-pro-preview"
+MODEL_ID = "gemini-2.5-flash"
 
 # Load Custom Knowledge Base (Portfolio & Checklists)
 def load_knowledge_base():
@@ -32,26 +30,31 @@ Your rules:
 2. When analyzing vulnerabilities or logs, cross-reference and suggest steps from Sumit's Checklists.
 3. Be highly technical, direct, and implementation-focused. Zero fluff.
 4. When the user asks about a topic from the checklists (e.g., "reverse shells", "privilege escalation", "brute force"), respond with:
-   - The relevant section title and number from the checklist.
-   - All the exact commands/payloads from that section, properly formatted in markdown code blocks.
-   - Brief tactical notes on when to use each command.
-5. Always format commands inside ```bash code blocks for readability.
+    - The relevant section title and number from the checklist.
+    - All the exact commands/payloads from that section, properly formatted in markdown code blocks.
+    - Brief tactical notes on when to use each command.
+5. Always format commands inside markdown code blocks (```bash) for readability.
 6. If a question spans multiple checklist sections, reference ALL relevant sections.
 7. Keep responses structured with clear headings (##) and bullet points."""
 
-@st.cache_resource
-def init_model():
-    return genai.GenerativeModel(
-        model_name=MODEL_ID,
-        system_instruction=SYSTEM_PROMPT
+def init_model(api_key):
+    client = genai.Client(api_key=api_key)
+    return client
+
+def start_chat_session(client):
+    return client.chats.create(
+        model=MODEL_ID,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT
+        )
     )
 
-if "chat_session" not in st.session_state:
-    st.session_state.chat_session = init_model().start_chat(history=[])
 if "latest_report_docx" not in st.session_state:
     st.session_state.latest_report_docx = None
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
+if "api_key" not in st.session_state:
+    st.session_state.api_key = ""
 
 # --- Custom CSS for styling ---
 st.markdown("""
@@ -151,6 +154,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
+    st.subheader("🔑 API Configuration")
+    api_key_input = st.text_input(
+        "Enter your Gemini API Key",
+        type="password",
+        placeholder="AIzaSy...",
+        help="Get your free API key from [Google AI Studio](https://aistudio.google.com/apikey)"
+    )
+    
+    # Handle API key changes
+    if api_key_input and api_key_input != st.session_state.api_key:
+        st.session_state.api_key = api_key_input
+        client = init_model(api_key_input)
+        st.session_state.client = client
+        st.session_state.chat_session = start_chat_session(client)
+        st.session_state.latest_report_docx = None
+        st.rerun()
+    
+    if st.session_state.api_key:
+        st.success("✅ API Key configured")
+    else:
+        st.warning("⚠️ Enter your Gemini API key to start")
+    
+    st.divider()
+    
     st.subheader("Report Configuration")
     selected_template = st.selectbox("Select Report Template", ["None"] + list(REPORT_TEMPLATES.keys()))
     
@@ -164,7 +191,10 @@ with st.sidebar:
             st.image(file, caption=file.name, width=250)
             
     if st.button("Clear Session"):
-        st.session_state.chat_session = init_model().start_chat(history=[])
+        if st.session_state.api_key:
+            client = st.session_state.get("client") or init_model(st.session_state.api_key)
+            st.session_state.client = client
+            st.session_state.chat_session = start_chat_session(client)
         st.session_state.latest_report_docx = None
         st.session_state.uploader_key += 1
         st.rerun()
@@ -186,13 +216,34 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+# --- Gate everything behind API key ---
+if not st.session_state.api_key:
+    st.info("👈 Please enter your **Gemini API Key** in the sidebar to get started.")
+    st.markdown("""
+    ### How to get your API Key:
+    1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
+    2. Sign in with your Google account
+    3. Click **"Create API Key"**
+    4. Copy the key and paste it in the sidebar
+    
+    > 🔒 Your API key is **never stored** — it only lives in your current browser session.
+    """)
+    st.stop()
+
 # Display Chat History
-for message in st.session_state.chat_session.history:
+history = st.session_state.chat_session.get_history()
+for message in history:
     role = "assistant" if message.role == "model" else "user"
     with st.chat_message(role):
         for part in message.parts:
             if hasattr(part, 'text') and part.text:
-                st.markdown(part.text)
+                if role == "user":
+                    # Hide injected instruction templates from the user view
+                    clean_text = part.text.split("\n\n### SYSTEM INSTRUCTION OVERRIDE")[0]
+                    clean_text = clean_text.split("\n\nAttached Evidence Files:")[0]
+                    st.markdown(clean_text)
+                else:
+                    st.markdown(part.text)
 
 user_input = st.chat_input("Ask NEXUS, paste logs, or reference a checklist...")
 
@@ -224,6 +275,8 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Analyzing against custom checklists..."):
             try:
+                # The new SDK takes parts directly or strings. 
+                # For combined text + images, we pass a list.
                 response = st.session_state.chat_session.send_message(payload)
                 st.markdown(response.text)
                 
