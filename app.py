@@ -6,6 +6,13 @@ import os
 from template import REPORT_TEMPLATES
 from document import create_docx_from_text
 
+# Import new modules
+from modules.threat_intel import render_threat_intel
+from modules.analysis import render_analysis
+from modules.log_parser import render_log_parser
+from modules.project_manager import render_project_manager
+from modules.automation import render_automation
+
 st.set_page_config(page_title="NEXUS AI", page_icon="🛡️", layout="wide")
 
 MODEL_ID = "gemini-2.5-flash"
@@ -230,60 +237,84 @@ if not st.session_state.api_key:
     """)
     st.stop()
 
+st.sidebar.divider()
+st.sidebar.subheader("🧭 Navigation")
+nav_selection = st.sidebar.radio("Go to:", [
+    "💬 NEXUS Chat", 
+    "🔍 Threat Intel", 
+    "📊 Analysis", 
+    "📄 Log Parsing", 
+    "💾 Project Manager", 
+    "⚡ Automation Tools"
+])
+
+if nav_selection == "💬 NEXUS Chat":
+
 # Display Chat History
-history = st.session_state.chat_session.get_history()
-for message in history:
-    role = "assistant" if message.role == "model" else "user"
-    with st.chat_message(role):
-        for part in message.parts:
-            if hasattr(part, 'text') and part.text:
-                if role == "user":
-                    # Hide injected instruction templates from the user view
-                    clean_text = part.text.split("\n\n### SYSTEM INSTRUCTION OVERRIDE")[0]
-                    clean_text = clean_text.split("\n\nAttached Evidence Files:")[0]
-                    st.markdown(clean_text)
-                else:
-                    st.markdown(part.text)
-
-user_input = st.chat_input("Ask NEXUS, paste logs, or reference a checklist...")
-
-if user_input:
-    with st.chat_message("user"):
-        st.markdown(user_input)
-
-    # Build the payload with text and ALL uploaded images
-    augmented_input = user_input
-    if selected_template != "None":
-        augmented_input += "\n\n### SYSTEM INSTRUCTION OVERRIDE / TEMPLATE ###\n" + REPORT_TEMPLATES[selected_template]
-
-    payload = []
-    images_dict = {}
-    if uploaded_files:
-        image_names = []
-        for file in uploaded_files:
-            file.seek(0)
-            images_dict[file.name] = file
-            payload.append(Image.open(file))
-            image_names.append(file.name)
-            
-        augmented_input += "\n\nAttached Evidence Files:\n" + "\n".join(f"- {name}" for name in image_names)
-        augmented_input += "\n\nIMPORTANT INSTRUCTION: If you want to embed a screenshot exactly where it fits in the report, use this exact formatting on its own line: `[IMAGE: filename.ext]` replacing filename.ext with the exact name from the list above. Our parser will replace that text with the actual image."
-
-    # Append the text prompt at the END of the images for better analysis
-    payload.append(augmented_input)
-
-    with st.chat_message("assistant"):
-        with st.spinner("Analyzing against custom checklists..."):
-            try:
-                # The new SDK takes parts directly or strings. 
-                # For combined text + images, we pass a list.
-                response = st.session_state.chat_session.send_message(payload)
-                st.markdown(response.text)
+    history = st.session_state.chat_session.get_history()
+    for message in history:
+        role = "assistant" if message.role == "model" else "user"
+        with st.chat_message(role):
+            for part in message.parts:
+                if hasattr(part, 'text') and part.text:
+                    if role == "user":
+                        # Hide injected instruction templates from the user view
+                        clean_text = part.text.split("\n\n### SYSTEM INSTRUCTION OVERRIDE")[0]
+                        clean_text = clean_text.split("\n\nAttached Evidence Files:")[0]
+                        st.markdown(clean_text)
+                    else:
+                        st.markdown(part.text)
+    
+    user_input = st.chat_input("Ask NEXUS, paste logs, or reference a checklist...")
+    
+    if user_input:
+        with st.chat_message("user"):
+            st.markdown(user_input)
+    
+        # Build the payload with text and ALL uploaded images
+        augmented_input = user_input
+        if selected_template != "None":
+            augmented_input += "\n\n### SYSTEM INSTRUCTION OVERRIDE / TEMPLATE ###\n" + REPORT_TEMPLATES[selected_template]
+    
+        payload = []
+        images_dict = {}
+        if uploaded_files:
+            image_names = []
+            for file in uploaded_files:
+                file.seek(0)
+                images_dict[file.name] = file
+                payload.append(Image.open(file))
+                image_names.append(file.name)
                 
-                # Only generate DOCX when a report template is selected
-                if selected_template != "None":
-                    docx_file = create_docx_from_text(response.text, images_dict)
-                    st.session_state.latest_report_docx = docx_file
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Execution Error: {e}")
+            augmented_input += "\n\nAttached Evidence Files:\n" + "\n".join(f"- {name}" for name in image_names)
+            augmented_input += "\n\nIMPORTANT INSTRUCTION: If you want to embed a screenshot exactly where it fits in the report, use this exact formatting on its own line: `[IMAGE: filename.ext]` replacing filename.ext with the exact name from the list above. Our parser will replace that text with the actual image."
+    
+        # Append the text prompt at the END of the images for better analysis
+        payload.append(augmented_input)
+    
+        with st.chat_message("assistant"):
+            with st.spinner("Analyzing against custom checklists..."):
+                try:
+                    # The new SDK takes parts directly or strings. 
+                    # For combined text + images, we pass a list.
+                    response = st.session_state.chat_session.send_message(payload)
+                    st.markdown(response.text)
+                    
+                    # Only generate DOCX when a report template is selected
+                    if selected_template != "None":
+                        docx_file = create_docx_from_text(response.text, images_dict)
+                        st.session_state.latest_report_docx = docx_file
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Execution Error: {e}")
+
+elif nav_selection == "🔍 Threat Intel":
+    render_threat_intel()
+elif nav_selection == "📊 Analysis":
+    render_analysis()
+elif nav_selection == "📄 Log Parsing":
+    render_log_parser()
+elif nav_selection == "💾 Project Manager":
+    render_project_manager()
+elif nav_selection == "⚡ Automation Tools":
+    render_automation()
